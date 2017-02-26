@@ -5,40 +5,112 @@
 	This lib depends on the validationEngine and JQuery
 	
 */
-
 ;(function ( window, $ ) {
 
 	$.AjaxCall = {
 		defaults: {
 			type: 'POST',
-			data: {
-				action: 'defaultAction',
-				subaction: 'defaultSubaction'
-			}
+			data: {}
 		}
 	};
-
+	
+	var AjaxElement = function(elem, options) {
+		this.elem = elem;
+		this.$elem = $(elem);
+		this.options = options;
+		this.metadata = $.extend({ }, this.$elem.data('ajaxelement'), {
+			rid: '#' + this.$elem.data('rid'),
+			useReplace: this.$elem.data('replace'),
+			triggerEvents: this.$elem.data('trigger-events'),
+			submitButton: this.$elem.data('submit')
+		});
+		this.metadata.formOptions = $.extend({ }, this.$elem.data('formoptions'), {
+			validate: this.$elem.data('validate'),
+			e: this.$elem.data('event-type'),
+			formID: this.$elem.data('formid')
+		});
+		this.metadata.ajaxcall = $.extend({ }, this.$elem.data('ajaxcall'), { 
+			url: this.$elem.data('url')
+		});
+		this.metadata.ajaxcall.data = $.extend({ }, this.$elem.data('ajaxdata'));
+	};
+	
+	$.AjaxElements = {};
+	
 })( window, jQuery );
+
+(function($) {
+	var re = /([^&=]+)=?([^&]*)/g;
+	var decodeRE = /\+/g;  // Regex for replacing addition symbol with a space
+	var decode = function (str) {return decodeURIComponent( str.replace(decodeRE, " ") );};
+	$.parseParams = function(url) {
+		var params = {}, e;
+		if (url === undefined) return params;
+		var query = url.split('?')[1] || '';
+		while ( e = re.exec(query) ) { 
+			var k = decode( e[1] ), v = decode( e[2] );
+			if (k.substring(k.length - 2) === '[]') {
+				k = k.substring(0, k.length - 2);
+				(params[k] || (params[k] = [])).push(v);
+			}
+			else params[k] = v;
+		}
+		return params;
+	};
+	
+	$.fn.serializeObject = function() {
+	   var o = {};
+	   var a = this.serializeArray();
+	   $.each(a, function() {
+		   if (o[this.name]) {
+			   if (!o[this.name].push) {
+				   o[this.name] = [o[this.name]];
+			   }
+			   o[this.name].push(this.value || '');
+		   } else {
+			   o[this.name] = this.value || '';
+		   }
+	   });
+	   return o;
+	};
+	
+})(jQuery);
 
 (function ( window, $ ) {
 	
 	var AjaxButton = function(elem, options) {
 		this.elem = elem;
 		this.$elem = $(elem);
-		this.options = options;
-		this.metadata = $.extend({ }, this.$elem.data('ajaxbutton'));
-		this.metadata.ajaxcall = $.extend({ }, this.$elem.data('ajaxcall'));
-		this.metadata.ajaxcall.data = $.extend({ }, this.$elem.data('ajaxdata'));
-	}
+		this.options = $.extend({ }, options, { $elem: this.$elem });
+		this.metadata = $.extend({ }, this.$elem.data('ajaxbutton'), {
+			rid: this.$elem.data('rid'),
+			useReplace: this.$elem.data('replace'),
+			triggerEvents: this.$elem.data('trigger-events'),
+			submitButton: this.$elem.data('submit'),
+			useNew: this.$elem.data('usenew')
+		});
+		this.metadata.formOptions = $.extend({ }, this.$elem.data('formoptions'), {
+			validate: this.$elem.data('validate'),
+			e: this.$elem.data('event-type'),
+			formID: this.$elem.data('formid')
+		});
+		var toteURL = this.$elem.data('url');
+		this.metadata.ajaxcall = $.extend({ }, this.$elem.data('ajaxcall'), { 
+			url: toteURL
+		});
+		this.metadata.ajaxcall.data = $.extend({ }, this.$elem.data('ajaxdata'), $.parseParams(toteURL));
+	};
 	
 	AjaxButton.prototype = {
 		defaults: {
-			rid: '#defaultRID',
-			selector: '.ajax-button',
+			rid: undefined,
 			triggerEvents: true,
 			useReplace: false,
 			ajaxcall: $.AjaxCall.defaults,
 			submitButton: false,
+			useNew: false,
+			loadOnce: false,
+			loaded: 0,
 			formOptions: {
 				validate: false,
 				e: 'submit',
@@ -54,34 +126,63 @@
 				this.buildEvent();
 				return $.ajax(this.ajaxcall);
 			},
-			beginFunc: function() {},
-			endFunc: function() {},
+			beginFunc: function(result,btn,$rid,success) {},
+			endFunc: function(result,btn,$rid,success) {},
+			preStartFunc: function() {},
+			alwaysFunc: function() {},
+			frmdataFunc: function() {
+				var qs;
+				if (this.useNew) {
+					var frmData = this.$frm.serializeObject();
+					qs = $.extend({}, this.ajaxcall.data, frmData);
+				} else {
+					qs = this.$frm.serialize();
+				}
+				this.ajaxcall.data = qs;
+			},
+			successFunc: function(success) {},
+			replaceFunc: function(result,btn,$rid,success) {
+				if (btn.useReplace){
+					$rid.empty();
+					$rid.append($.trim(result));
+				} else {
+					$rid.html($.trim(result));
+				}
+			},
+			errorFunc: function(error) {
+				alert('There was an Error processing your request, please try again later.');
+			},
+			unAuthFunc: function(error) {
+				alert('There was an Error processing your request, please try again later. UNAUTHORIZED');
+			},
+			validateFunc: function() {
+				return true;
+			},
 			replaceDNA: function() {
 				var btn = this;
-				this.getDNA().done(function(result) {
-					var $btn = $(btn.rid);
-					btn.beginFunc();
-					if (btn.useReplace){
-						$btn.empty();
-						$btn.append($.trim(result));
-					} else {
-						$btn.html($.trim(result));
-					}
-					btn.endFunc();
-					if (btn.triggerEvents) {
-						$.event.trigger('ajaxButtonStop');
-					}
+				this.preStartFunc();
+				this.getDNA().done(function(result, status, obj) {	
+					var $btn = $('#' + btn.rid);
+					btn.beginFunc(result,btn,$btn,obj);
+					btn.replaceFunc(result,btn,$btn,obj);
+					btn.endFunc(result,btn,$btn,obj);
+					btn.successFunc(obj);
 				}).fail(function(error) {
-					alert('There was an Error processing your request, please try again later.');
+					if (error.status === 401) {
+						btn.unAuthFunc(error);
+					} else {
+						btn.errorFunc(error);
+					}
+				}).always(function() {
 					if (btn.triggerEvents) {
 						$.event.trigger('ajaxButtonStop');
 					}
+					btn.alwaysFunc();
 				})
 			},
 			runDNA: function() {
 				if(this.submitButton) {
-					var qs = this.$frm.serialize();
-					this.ajaxcall.data = qs;
+					this.frmdataFunc();
 				};
 				if (this.frmVal()){
 					if (this.modelCB()) {
@@ -90,11 +191,10 @@
 				}
 			},
 			frmVal: function() {
-				if (this.formOptions.validate && this.submitButton){
-					return this.$frm.validationEngine('validate');
-				} else {
-					return true;
+				if (this.submitButton){
+					return this.validateFunc(this.$frm);
 				}
+				return true;
 			},
 			modelCB: function() {
 				return true;
@@ -104,7 +204,12 @@
 				var qs = $(this).serialize();
 			},
 			click: function() {
-				this.config.runDNA();
+				if (this.config.loaded === 0) {
+					this.config.runDNA();
+					if(this.config.loadOnce){
+						this.config.loaded = 1;
+					}
+				}
 			}
 		},
 		initAjaxForm: function(){
@@ -129,6 +234,10 @@
 		}
 	};		
 	
+	$.setAjaxButtonDefaults = function(newDefs) {
+		AjaxButton.prototype.defaults = $.extend({}, AjaxButton.prototype.defaults, newDefs);
+	};
+	
 	AjaxButton.defaults = AjaxButton.prototype.defaults;
 	
 	$.fn.AjaxButton = function (options) {
@@ -146,7 +255,7 @@
 	
 	$.CreateAjaxButton = function(selector, options) {
 		$(selector).AjaxButton(options);
-	}
+	};
 	
 	window.AjaxButton = AjaxButton;
 })( window, jQuery );
@@ -156,18 +265,29 @@
 		this.elem = elem;
 		this.$elem = $(elem);
 		this.options = options;
-		this.metadata = $.extend({ }, this.$elem.data('ajaxselect'));
-		this.metadata.ajaxcall = $.extend({ }, this.$elem.data('ajaxcall'));
+		this.metadata = $.extend({ }, this.$elem.data('ajaxbutton'), {
+			rid: this.$elem.data('rid'),
+			useReplace: this.$elem.data('replace'),
+			triggerEvents: this.$elem.data('trigger-events'),
+			submitOnChange: this.$elem.data('submit')
+		});
+		this.metadata.formOptions = $.extend({ }, this.$elem.data('formoptions'), {
+			validate: this.$elem.data('validate'),
+			e: this.$elem.data('event-type'),
+			formID: this.$elem.data('formid')
+		});
+		this.metadata.ajaxcall = $.extend({ }, this.$elem.data('ajaxcall'), { 
+			url: this.$elem.data('url')
+		});
 		this.metadata.ajaxcall.data = $.extend({ }, this.$elem.data('ajaxdata'));
 	}
 	
 	AjaxSelect.prototype = {
 		defaults: {
-			rid: '#defaultRID',
-			selector: '.ajax-select',
-			initAfter: true,
+			rid: undefined,
 			triggerEvents: true,
 			useReplace: false,
+			useNew: false,
 			ajaxcall: $.AjaxCall.defaults,
 			submitOnChange: false,
 			formOptions: {
@@ -184,34 +304,63 @@
 				this.buildEvent();
 				return $.ajax(this.ajaxcall);
 			},
-			beginFunc: function() {},
-			endFunc: function() {},
+			beginFunc: function(result,sel,$rid,success) {},
+			endFunc: function(result,sel,$rid,success) {},
+			preStartFunc: function() {},
+			frmdataFunc: function() {
+				var qs;
+				if (this.useNew) {
+					var frmData = this.$frm.serializeObject();
+					qs = $.extend({}, this.ajaxcall.data, frmData);
+				} else {
+					qs = this.$frm.serialize();
+				}
+				this.ajaxcall.data = qs;
+			},
+			alwaysFunc: function() {},
+			successFunc: function(success) {},
+			replaceFunc: function(result,sel,$rid,success) {
+				if (sel.useReplace){
+					$rid.empty();
+					$rid.append($.trim(result));
+				} else {
+					$rid.html($.trim(result));
+				}
+			},
+			errorFunc: function(error) {
+				alert('There was an Error processing your request, please try again later.');
+			},
+			unAuthFunc: function(error) {
+				alert('There was an Error processing your request, please try again later. 23254');
+			},
+			validateFunc: function() {
+				return true;
+			},
 			replaceDNA: function() {
 				var sel = this;
-				this.getDNA().done(function(result) {
-					var $sel = $(sel.rid);
-					sel.beginFunc();
-					if (sel.useReplace){
-						$sel.empty();
-						$sel.after($.trim(result));
-					} else {
-						$sel.html($.trim(result));
-					}
-					sel.endFunc();
-					if (sel.triggerEvents) {
-						$.event.trigger('ajaxSelectStop');
-					}
+				this.preStartFunc();
+				this.getDNA().done(function(result, status, obj) {
+					var $sel = $('#' + sel.rid);
+					sel.beginFunc(result,sel,$sel,obj);
+					sel.replaceFunc(result,sel,$sel,obj);
+					sel.endFunc(result,sel,$sel,obj);
+					sel.successFunc(obj);
 				}).fail(function(error) {
-					alert('There was an Error processing your request, please try again later.');
+					if (error.status === 401) {
+						sel.unAuthFunc(error);
+					} else {
+						sel.errorFunc(error);
+					}
+				}).always(function(){
 					if (sel.triggerEvents) {
 						$.event.trigger('ajaxSelectStop');
 					}
-				})
+					sel.alwaysFunc();
+				});
 			},
 			runDNA: function() {
 				if(this.submitOnChange) {
-					var qs = this.$frm.serialize();
-					this.ajaxcall.data = qs;
+					this.frmdataFunc();
 				};
 				if (this.frmVal()){
 					if (this.modelCB()) {
@@ -220,8 +369,8 @@
 				}
 			},
 			frmVal: function() {
-				if (this.formOptions.validate && this.submitOnChange){
-					return this.$frm.validationEngine('validate');
+				if (this.submitOnChange){
+					return this.validateFunc(this.$frm);
 				} else {
 					return true;
 				}
@@ -234,6 +383,11 @@
 				var qs = $(this).serialize();
 			},
 			change: function() {
+				var object = {};
+				var	dataobj = $.extend({}, { name: this.$elem.attr('name')}, { name: this.$elem.data('sendname')});
+				object[dataobj.name] = this.elem.value;
+				/*this.config.ajaxcall.data = $.extend({ }, this.config.ajaxcall.data, { [this.$elem.attr('name')]: this.elem.value });*/
+				this.config.ajaxcall.data = $.extend({ }, this.config.ajaxcall.data, object);
 				this.config.runDNA();
 			}
 		},
@@ -272,6 +426,10 @@
 				});
 			}				
 		});
+	};
+	
+	AjaxSelect.setDefaults = function(newDefs) {
+		AjaxSelect.defaults = $.extend({}, AjaxSelect.prototype.defaults, newDefs);
 	};
 	
 	$.CreateAjaxSelect = function(selector, options) {
