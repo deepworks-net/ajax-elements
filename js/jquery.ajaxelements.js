@@ -87,7 +87,8 @@
 			useReplace: this.$elem.data('replace'),
 			triggerEvents: this.$elem.data('trigger-events'),
 			submitButton: this.$elem.data('submit'),
-			useNew: this.$elem.data('usenew')
+			useNew: this.$elem.data('usenew'),
+			blockID: this.$elem.data('blockID')
 		});
 		this.metadata.formOptions = $.extend({ }, this.$elem.data('formoptions'), {
 			validate: this.$elem.data('validate'),
@@ -111,6 +112,8 @@
 			useNew: false,
 			loadOnce: false,
 			loaded: 0,
+			blockID: undefined,
+			reDirUrl: undefined,
 			formOptions: {
 				validate: false,
 				e: 'submit',
@@ -142,11 +145,13 @@
 			},
 			successFunc: function(success) {},
 			replaceFunc: function(result,btn,$rid,success) {
-				if (btn.useReplace){
-					$rid.empty();
-					$rid.append($.trim(result));
-				} else {
-					$rid.html($.trim(result));
+				if ($rid) {
+					if (btn.useReplace){
+						$rid.empty();
+						$rid.append($.trim(result));
+					} else {
+						$rid.html($.trim(result));
+					}
 				}
 			},
 			errorFunc: function(error) {
@@ -155,14 +160,18 @@
 			unAuthFunc: function(error) {
 				alert('There was an Error processing your request, please try again later. UNAUTHORIZED');
 			},
-			validateFunc: function() {
+			validateFunc: function($frm) {
 				return true;
 			},
 			replaceDNA: function() {
 				var btn = this;
 				this.preStartFunc();
-				this.getDNA().done(function(result, status, obj) {	
-					var $btn = $('#' + btn.rid);
+				this.getDNA().done(function(result, status, obj) {
+					var $btn
+					if (btn.rid) {
+						var rrid = (btn.rid.slice(0,1) === '#') ? btn.rid : '#' + btn.rid;
+						$btn = $(rrid);
+					}
 					btn.beginFunc(result,btn,$btn,obj);
 					btn.replaceFunc(result,btn,$btn,obj);
 					btn.endFunc(result,btn,$btn,obj);
@@ -252,6 +261,8 @@
 			}				
 		});
 	};
+	
+	$.AjaxButton = {};
 	
 	$.CreateAjaxButton = function(selector, options) {
 		$(selector).AjaxButton(options);
