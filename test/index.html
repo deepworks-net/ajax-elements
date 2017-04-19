@@ -4,7 +4,7 @@
 	<tbody>
 		<tr>
 			<td>
-				<button type="button" id="test" data-url="ajax-content.html" data-rid="recDiv">
+				<button type="button" id="test" data-url="ajax-content.html" data-ajax-event="click" data-rid="recDiv">
 					Test
 				</button>
 			</td>
@@ -15,15 +15,17 @@
 
 <script src="plugins/jquery.min.js" type="text/javascript"></script>
 
-[!]
-<script src="../js/jquery.ajaxelements.js" type="text/javascript"></script>
-[/!]
+<script src="../js/jquery.ajaxelements[Hideif [action]=old]-copy[/Hideif].js" type="text/javascript"></script>
 
-<script src="../js/jquery.ajaxelements-copy.js" type="text/javascript"></script>
+
+[!]<script src="../js/jquery.ajaxelements.js" type="text/javascript"></script>[/!]
 <script src="plugins/bootstrap-select/js/bootstrap-select.min.js" type="text/javascript"></script>
 
 <script>
-	debugger;
-	var t = $('#test').AjaxElement().data();
-	var d = 0;
+[Hideif [action]=old]
+	$('#test').AjaxElement();
+[/Hideif]
+[Showif [action]=old]
+	$('#test').AjaxButton();
+[/Showif]
 </script>

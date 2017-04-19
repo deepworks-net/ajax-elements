@@ -47,7 +47,8 @@
 		this.metadata = $.extend({ }, this.$elem.data('ajaxelement'), {
 			rid: this.$elem.data('rid'),
 			triggerEvents: this.$elem.data('trigger-events'),
-			blockID: this.$elem.data('blockID')
+			blockID: this.$elem.data('blockID'),
+			ajaxEvent: this.$elem.data('ajax-event')
 		});
 		var toteURL = this.$elem.data('url');
 		this.metadata.ajaxcall = $.extend({ }, this.$elem.data('ajaxcall'), { 
@@ -61,15 +62,10 @@
 			ajaxcall: undefined,
 			rid: undefined,
 			useReplace: false,
-			ajaxEvent: "click",
+			ajaxEvent: undefined,
 			triggerEvents: true,
 			preventDefault: false,
 			blockID: undefined,
-			buildEvent: function () {
-				if (this.triggerEvents) {
-					$.event.trigger('ajaxStart.AjaxElement');
-				}
-			},
 			successFunc: function(success) {},
 			errorFunc: function(error) {
 				alert('There was an Error processing your request, please try again later.');
@@ -82,7 +78,14 @@
 			beginFunc: function(result,elm,$rid,success) {},
 			endFunc: function(result,elm,$rid,success) {},
 			preStartFunc: function() {},
-			alwaysFunc: function() {},
+			alwaysFunc: function() {}
+		},
+		framework: {
+			buildEvent: function () {
+				if (this.triggerEvents) {
+					$.event.trigger('ajaxStart.AjaxElement');
+				}
+			},
 			replaceFunc: function(result,elm,$rid,success) {
 				if ($rid) {
 					if (elm.useReplace){
@@ -95,92 +98,102 @@
 			},
 			ajaxFunc: function(options) {
 				this.buildEvent();
-				return $.ajax($.extend({},  this.ajaxcall, options));
+				return $.ajax($.extend({},this.ajaxcall,options));
 			},
-			executeFunc: function(ajaxOR) {
-				var elm = this;
+			execute: function(ajaxOR) {
+				var api = this;
 				this.preStartFunc();
 				this.ajaxFunc(ajaxOR).done(function(result,status,obj){
 					var $rid
-					if (elm.rid) {
-						var rrid = (elm.rid.slice(0,1) === '#') ? elm.rid : '#' + elm.rid;
+					if (api.rid) {
+						var rrid = (api.rid.slice(0,1) === '#') ? api.rid : '#' + api.rid;
 						$rid = $(rrid);
 					}
-					elm.beginFunc(result,elm,$rid,obj);
-					if (elm.rid) {
-						elm.replaceFunc(result,elm,$rid,obj);
+					api.beginFunc(result,api,$rid,obj);
+					if (api.rid) {
+						api.replaceFunc(result,api,$rid,obj);
 					}
-					elm.endFunc(result,elm,$rid,obj);
-					elm.successFunc(obj);
+					api.endFunc(result,api,$rid,obj);
+					api.successFunc(obj);
 				}).fail(function(error){
 					if (error.status === 401) {
-						elm.unAuthFunc(error);
+						api.unAuthFunc(error);
 					} else {
-						elm.errorFunc(error);
+						api.errorFunc(error);
 					}
 				}).always(function(){
-					if (elm.triggerEvents) {
+					if (api.triggerEvents) {
 						$.event.trigger('ajaxStop.AjaxElement');
 					}
-					elm.alwaysFunc();
+					api.alwaysFunc();
 				});
 			},
-			runFunc: function() {
-				this.executeFunc();
+			run: function() {
+				this.execute();
 			},
-			onEventFunc: function(e) {
+			onEvent: function(e) {
 				if (this.preventDefault) {
 					e.preventDefault();
 				}
-				this.runFunc();
+				this.run();
 			}
 		},
-		
-		trsFunc: function(e) {
-			this.onEventFunc(e);
-		},
 		init: function() {
-			this.config = $.extend(true, { }, this.defaults, this.options, this.metadata);
+			this.config = $.extend(true, { }, this.defaults, this.options, this.metadata, this.framework);
 			if(this.config.ajaxEvent) {
-				this.$elem.on(this.config.ajaxEvent, this.trsFunc);
+				var data = this;
+				this.$elem.on(this.config.ajaxEvent, function(e){
+					data.config.onEvent(e);
+				});
 			}
 			return this;
 		}
 	};
 	
 	var methods = {
-		data: function() {
-			return this.config;
-		}
-	};
-	
-	$.setAjaxElementDefaults = function(newDefs) {
-		AjaxElement.prototype.defaults = $.extend({}, AjaxElement.prototype.defaults, newDefs);
-	};
-	
-	AjaxElement.defaults = AjaxElement.prototype.defaults;
-	
-	$.fn.AjaxElement = function (options) {
-		if (methods[options]) {
-			return 
-		} else if ( typeof options === 'object' || !options ) {
+		init: function(options) {
 			return this.each(function() {	
-				 if ( undefined === $(this).data('Ajax-Element') ){
+				if ( undefined === $(this).data('Ajax-Element') ){
 					var data = new AjaxElement(this, options).init();
 					data.$elem.data('Ajax-Element', data);
 				}				
 			});
+		},
+		data: function() {
+			return $(this).data('Ajax-Element');
+		},
+		api: function() {
+			return $(this).data('Ajax-Element').config;
+		}
+	};
+	
+	AjaxElement.defaults = AjaxElement.prototype.defaults;
+	AjaxElement.framework = AjaxElement.prototype.framework;
+	
+	$.AjaxElement = {
+		setDefaults: function(newDefs) {
+			/*Check This*/
+			AjaxElement.defaults = $.extend({}, AjaxElement.defaults, newDefs);
+		}
+	};
+	
+	$.fn.AjaxElement = function (options) {
+		if (methods[options]) {
+			return methods[options].apply(this, Array.prototype.slice.call(arguments, 1));
+		} else if ( typeof options === 'object' || !options ) {
+			return methods.init.apply(this, arguments);
 		} else {
 			console.log('Error!');
 		}
 	};
 	
-	$.AjaxElement = {};
-	
 	$.CreateAjaxElement = function(selector, options) {
 		$(selector).AjaxElement(options);
 	};
 	
-	window.AjaxElement = AjaxElement;
+})( jQuery );
+(function ( $ ) {
+	
+	
 	
 })( jQuery );
