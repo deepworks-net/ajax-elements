@@ -27,6 +27,22 @@
 		</tr>
 	</tbody>
 </table>
+</br></br>
+<table>
+	<tbody>
+		<tr>
+			<td>
+				<form id="test_3" action="ajax-content.html" method="post">
+					<input type="hidden" name="param" value="Test 3" />
+					<button type="button" id="test3" data-formID="test_3" data-submit="true" data-rid="recDiv">
+						Test 3
+					</button>
+				</form>
+			</td>
+			<td><div id="recDiv"></div></td>
+		</tr>
+	</tbody>
+</table>
 
 <script src="plugins/jquery.min.js" type="text/javascript"></script>
 
@@ -39,21 +55,10 @@
 
 	//$('.bs-select').selectpicker();
 
-	$('#test').AjaxElement({
-		ajaxEvent: 'click',
-		submit: false,
-		formOptions: {
-			validate: false,
-			e: 'submit',
-			formID: undefined,
-			catchEnter: true
-		},
-		useNew: false,
-		loadOnce: false,
-		loaded: 0,
-		reDirUrl: undefined
-	});
-	//$('#test2').AjaxSelect();
+	$('#test').AjaxButton();
 	
-
+	$('#test2').AjaxSelect();
+	
+	$('#test3').AjaxButton();
+	
 </script>

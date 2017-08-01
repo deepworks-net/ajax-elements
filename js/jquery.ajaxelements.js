@@ -77,6 +77,7 @@
 			this.builder.initFn.apply(this);
 			return this;
 		},
+		super: function() { return this; },
 		builder: {
 			metadataFn: function(){ return undefined; },
 			configFn: function() {
@@ -86,22 +87,28 @@
 		}
 	};
 	
-	$.plugin = function( name, object ) {
+	$.plugin = function( name, object, extend ) {
 	
-		var newObj = $.extend(true, { }, _Object, object);
+		object.name = name;
+		if (_objects[extend]) { 
+			_Object = _objects[extend];
+			object.super = function() { return _Object; };
+		}
+
+		_objects[name] = $.extend(true, { }, _Object, object);
 		
 		var _init = function( options ) {
 			return this.each(function() {
 				if ( undefined === $(this).data(name) ){
-					var data = Object.create(newObj).init(this, options);
+					var data = Object.create(_objects[name]).init(this, options);
 					data.$elem.data(name, data);
 				}
 			});
 		};
 	
 		$.fn[name] =  function (options) {
-			if (newObj.methods[options]) {
-				return newObj.methods[options].apply(this, Array.prototype.slice.call(arguments, 1));
+			if (_objects[name].methods[options]) {
+				return _objects[name].methods[options].apply(this, Array.prototype.slice.call(arguments, 1));
 			} else if ( typeof options === 'object' || !options ) {
 				return _init.apply(this, arguments);
 			} else {
@@ -118,7 +125,6 @@
 	//}
 	
 	$.plugin('AjaxElement', {
-		name: "AjaxElement",
 		defaults: {
 			ajaxcall: undefined,
 			rid: undefined,
@@ -228,6 +234,40 @@
 			}
 		}
 	});
+	
+	$.plugin('AjaxButton', {
+		defaults: {
+			ajaxEvent: 'click',
+			submit: false,
+			formOptions: {
+				validate: false,
+				e: 'submit',
+				formID: undefined,
+				catchEnter: true
+			},
+			useNew: false,
+			loadOnce: false,
+			loaded: 0,
+			reDirUrl: undefined
+		},
+		builder: {
+			metadataFn: function() {
+				var metadata = this.super().builder.metadataFn.apply(this);
+				metadata.formOptions = $.extend(true, { }, this.$elem.data('formoptions'), {
+					validate: this.$elem.data('validate'),
+					e: this.$elem.data('event-type'),
+					formID: this.$elem.data('formid')
+				});
+				return metadata;
+			}
+		}
+	}, 'AjaxElement');
+	
+	$.plugin('AjaxSelect', {
+		defaults: {
+			ajaxEvent: 'change'
+		}
+	}, 'AjaxElement');
 	
 	/*$._Builder = {
 		/*setDefaults: function(newDefs,elmType) {
