@@ -56,6 +56,17 @@
 
 	//$('.bs-select').selectpicker();
 
+	$.AjaxButton.setDefaults({
+		ajaxcall: {
+			data: {
+				defaultTest:"Test 4"
+			}
+		},
+		preStartFunc: function() {
+			alert('BOOM!');
+		}
+	});
+	
 	$('#test').AjaxButton();
 	$('#test2').AjaxSelect();
 
