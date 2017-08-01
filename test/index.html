@@ -38,9 +38,22 @@
 <script>
 
 	//$('.bs-select').selectpicker();
-	
-	$('#test').AjaxButton();
-	$('#test2').AjaxSelect();
+
+	$('#test').AjaxElement({
+		ajaxEvent: 'click',
+		submit: false,
+		formOptions: {
+			validate: false,
+			e: 'submit',
+			formID: undefined,
+			catchEnter: true
+		},
+		useNew: false,
+		loadOnce: false,
+		loaded: 0,
+		reDirUrl: undefined
+	});
+	//$('#test2').AjaxSelect();
 	
 
 </script>
