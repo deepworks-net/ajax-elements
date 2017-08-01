@@ -60,10 +60,10 @@
 		framework: {},
 		methods: {
 			data: function() {
-				return $(this).data(this.name);
+				return this;
 			},
 			api: function() {
-				return $(this).data(this.name).config;
+				return this.config;
 			}
 		},
 		init: function(elem, options){
@@ -90,7 +90,8 @@
 	$.plugin = function( name, object, extend ) {
 	
 		object.name = name;
-		if (_objects[extend]) { 
+		
+		if (extend && _objects[extend]) { 
 			_Object = _objects[extend];
 			object.super = function() { return _Object; };
 		}
@@ -108,7 +109,7 @@
 	
 		$.fn[name] =  function (options) {
 			if (_objects[name].methods[options]) {
-				return _objects[name].methods[options].apply(this, Array.prototype.slice.call(arguments, 1));
+				return _objects[name].methods[options].apply($(this).data(name), Array.prototype.slice.call(arguments, 1));
 			} else if ( typeof options === 'object' || !options ) {
 				return _init.apply(this, arguments);
 			} else {
