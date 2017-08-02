@@ -25,46 +25,41 @@
 			},
 			blockFunc: function() {},
 			unblockFunc: function() {},
-			beginFunc: function(result,elm,$rid,success) {},
-			endFunc: function(result,elm,$rid,success) {},
+			beginFunc: function(result,success) {},
+			endFunc: function(result,success) {},
 			preStartFunc: function() {},
 			alwaysFunc: function() {}
 		},
 		framework: {
-			buildEvent: function () {
+			_buildEvent: function () {
 				if (this.triggerEvents) {
 					$.event.trigger('ajaxStart.AE');
 				}
 			},
-			replaceFunc: function(result,elm,$rid,success) {
-				if ($rid) {
-					if (elm.useReplace){
-						$rid.empty();
-						$rid.append($.trim(result));
+			_replaceFunc: function(result,success) {
+				if (this.$rid) {
+					if (this.useReplace){
+						this.$rid.empty();
+						this.$rid.append($.trim(result));
 					} else {
-						$rid.html($.trim(result));
+						this.$rid.html($.trim(result));
 					}
 				}
 			},
-			ajaxFunc: function(options) {
-				this.buildEvent();
+			_ajaxFunc: function(options) {
+				this._buildEvent();
 				return $.ajax($.extend({},this.ajaxcall,options));
 			},
-			execute: function(ajaxOR) {
+			_execute: function(ajaxOR) {
 				var api = this;
 				this.preStartFunc();
-				this.ajaxFunc(ajaxOR).done(function(result,status,obj){
-					var $rid
+				this._ajaxFunc(ajaxOR).done(function(result,status,success){
+					api.beginFunc(result,success);
 					if (api.rid) {
-						var rrid = (api.rid.slice(0,1) === '#') ? api.rid : '#' + api.rid;
-						$rid = $(rrid);
+						api._replaceFunc(result,success);
 					}
-					api.beginFunc(result,api,$rid,obj);
-					if (api.rid) {
-						api.replaceFunc(result,api,$rid,obj);
-					}
-					api.endFunc(result,api,$rid,obj);
-					api.successFunc(obj);
+					api.endFunc(result,success);
+					api.successFunc(success);
 				}).fail(function(error){
 					if (error.status === 401) {
 						api.unAuthFunc(error);
@@ -78,14 +73,19 @@
 					api.alwaysFunc();
 				});
 			},
-			run: function() {
-				this.execute();
+			_run: function() {
+				this._execute();
 			},
-			onEvent: function(e) {
+			_onEvent: function(e) {
 				if (this.preventDefault) {
 					e.preventDefault();
 				}
-				this.run();
+				this._run();
+			}
+		},
+		methods: {
+			fire: function(options) {
+				this.config._execute(options);
 			}
 		},
 		builder: {
@@ -110,9 +110,12 @@
 				if(this.config.ajaxEvent) {
 					var data = this;
 					this.$elem.on(this.config.ajaxEvent, function(e){
-						data.config.onEvent(e);
+						data.config._onEvent(e);
 					});
-				}
+				};
+				if (this.config.rid) {
+					this.config.$rid = $((this.config.rid.slice(0,1) === '#') ? this.config.rid : '#' + this.config.rid);
+				};
 				return this;
 			}
 		}
@@ -120,18 +123,21 @@
 	
 	$.plugin('AjaxButton', {
 		defaults: {
-			ajaxEvent: 'click',
+			//useNew: false,
+			//reDirUrl: undefined,
+			ajaxEvent: 'click'
+		}
+	}, 'AjaxElement');
+	
+	$.plugin('AjaxButtonForm', {
+		defaults: {
 			submit: false,
 			formOptions: {
 				validate: false,
 				e: 'submit',
 				formID: undefined,
 				catchEnter: true
-			},
-			useNew: false,
-			loadOnce: false,
-			loaded: 0,
-			reDirUrl: undefined
+			}
 		},
 		builder: {
 			metadataFn: function() {
@@ -144,7 +150,7 @@
 				return metadata;
 			}
 		}
-	}, 'AjaxElement');
+	}, 'AjaxButton');
 	
 	$.plugin('AjaxSelect', {
 		defaults: {
@@ -152,28 +158,22 @@
 		}
 	}, 'AjaxElement');
 	
-	
-	
-	
-	
-	/*$._Builder = {
-		/*setDefaults: function(newDefs,elmType) {
-			if(elmType) {
-				if(_objects[elmType]) {
-					_objects[elmType] = $.extend({}, _objects[elmType], newDefs);
-				}
-			}
+	$.plugin('AjaxTab', {
+		defaults: {
+			ajaxEvent: 'click',
+			loadOnce: false,
+			loaded: 0
 		},
-		/*extend: function(obj,elem,options) {
-			return $.extend(AjaxElement.prototype.defaults, options);
-		},*/
-		/*new: function(prototype,options) {
-			_objects[prototype.name] = _make(prototype,options);
-			$.fn[prototype.name] = _init;
+		framework: {
+			_run: function() {
+				if (this.loaded === 0) {
+					this._execute();
+					if (this.loadOnce) { this.loaded = 1; }
+				}
+				
+			}
 		}
-	};*/
-	
-	
+	}, 'AjaxElement');
 	
 })( jQuery );
 ;(function ( $ ) {

@@ -61,15 +61,18 @@
 			data: {
 				defaultTest:"Test 4"
 			}
-		},
-		preStartFunc: function() {
-			alert('BOOM!');
 		}
 	});
 	
 	$('#test').AjaxButton();
 	$('#test2').AjaxSelect();
-
+	
+	$('#test').AjaxButton('fire', {
+		data: {
+			defaultTest:"Test 6"
+		}
+	});
+	
 	var config = $('#test').AjaxButton('api');
 	var data = $('#test').AjaxButton('data');
 	
