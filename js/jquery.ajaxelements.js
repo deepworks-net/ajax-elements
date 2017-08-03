@@ -7,12 +7,60 @@
 */
 ;(function ( $ ) {
 
+	
+	$.plugin('ElementX', {
+		defaults: {
+			e: undefined
+		},
+		framework: {
+			_execute: function(options) { },
+			_run: function() {
+				this._execute();
+			},
+			_onEvent: function(e) {
+				if (this.preventDefault) {
+					e.preventDefault();
+				}
+				this._run();
+			}
+		},
+		methods: {
+			fire: function(options) {
+				this.config._execute(options);
+			}
+		},
+		builder: {
+			metadataFn: function() {
+				return { "e": this.$elem.data('event') };
+			},
+			initFn: function() {
+				if(this.config.e) {
+					var data = this;
+					this.$elem.on(this.config.e, function(e){
+						data.config._onEvent(e);
+					});
+				};
+				return this;
+			}
+		}
+	});
+	
+	$.plugin('TriggerElement', {
+		defaults: {
+			
+		},
+		framework: {
+			_execute: function(options) {
+				alert('Hello!')
+			}
+		}
+	}, 'ElementX');
+	
 	$.plugin('AjaxElement', {
 		defaults: {
 			ajaxcall: undefined,
 			rid: undefined,
 			useReplace: false,
-			ajaxEvent: undefined,
 			triggerEvents: true,
 			preventDefault: false,
 			blockID: undefined,
@@ -72,20 +120,6 @@
 					}
 					api.alwaysFunc();
 				});
-			},
-			_run: function() {
-				this._execute();
-			},
-			_onEvent: function(e) {
-				if (this.preventDefault) {
-					e.preventDefault();
-				}
-				this._run();
-			}
-		},
-		methods: {
-			fire: function(options) {
-				this.config._execute(options);
 			}
 		},
 		builder: {
@@ -97,8 +131,8 @@
 					triggerEvents: elem.data('trigger-events'),
 					useReplace: elem.data('replace'),
 					blockID: elem.data('blockID'),
-					submitButton: elem.data('submit'),
-					ajaxEvent: elem.data('ajax-event')
+					submitButton: elem.data('submit')
+					//useNew: this.$elem.data('usenew'),
 				});
 				metadata.ajaxcall = $.extend({ }, elem.data('ajaxcall'), { 
 					url: toteURL
@@ -107,9 +141,9 @@
 				return metadata;
 			},
 			initFn: function() {
-				if(this.config.ajaxEvent) {
+				if(this.config.e) {
 					var data = this;
-					this.$elem.on(this.config.ajaxEvent, function(e){
+					this.$elem.on(this.config.e, function(e){
 						data.config._onEvent(e);
 					});
 				};
@@ -119,29 +153,36 @@
 				return this;
 			}
 		}
-	});
+	}, 'ElementX');
 	
 	$.plugin('AjaxButton', {
 		defaults: {
 			//useNew: false,
 			//reDirUrl: undefined,
-			ajaxEvent: 'click'
+			e: 'click'
 		}
 	}, 'AjaxElement');
 	
-	$.plugin('AjaxButtonForm', {
+	$.plugin('AjaxSelect', {
 		defaults: {
-			submit: false,
+			e: 'change'
+		}
+	}, 'AjaxElement');
+	
+	$.plugin('AjaxForm', {
+		defaults: {
+			e: 'submit',
+			submit: true,
 			formOptions: {
 				validate: false,
-				e: 'submit',
+				e: 'submit', //????
 				formID: undefined,
 				catchEnter: true
 			}
 		},
 		builder: {
 			metadataFn: function() {
-				var metadata = this.super().builder.metadataFn.apply(this);
+				var metadata = {};
 				metadata.formOptions = $.extend(true, { }, this.$elem.data('formoptions'), {
 					validate: this.$elem.data('validate'),
 					e: this.$elem.data('event-type'),
@@ -150,17 +191,11 @@
 				return metadata;
 			}
 		}
-	}, 'AjaxButton');
-	
-	$.plugin('AjaxSelect', {
-		defaults: {
-			ajaxEvent: 'change'
-		}
 	}, 'AjaxElement');
 	
 	$.plugin('AjaxTab', {
 		defaults: {
-			ajaxEvent: 'click',
+			e: 'click',
 			loadOnce: false,
 			loaded: 0
 		},
@@ -185,7 +220,7 @@
 			ajaxcall: undefined,
 			rid: undefined,
 			useReplace: false,
-			ajaxEvent: undefined,
+			e: undefined,
 			triggerEvents: true,
 			preventDefault: false,
 			blockID: undefined,
@@ -277,9 +312,9 @@
 		},
 		init: function() {
 			this.config = $.extend(true, { }, this.defaults, this.options, this.metadata, this.framework);
-			if(this.config.ajaxEvent) {
+			if(this.config.e) {
 				var data = this;
-				this.$elem.on(this.config.ajaxEvent, function(e){
+				this.$elem.on(this.config.e, function(e){
 					data.config.onEvent(e);
 				});
 			}
