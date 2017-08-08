@@ -49,9 +49,9 @@
 	
 	$.plugin('TriggerElement', {
 		defaults: {
-			triggerFunc: function() {
-				alert('Hello!');
-			}
+			//????
+			target: undefined,
+			triggerFunc: function() {}
 		},
 		framework: {
 			_execute: function(options) {
@@ -169,6 +169,15 @@
 	$.plugin('AjaxSelect', {
 		defaults: {
 			e: 'change'
+		},
+		framework: {
+			_run: function() {
+				var object = {};
+				var dataobj = $.extend({}, { name: this.$elem.attr('name')}, { name: this.$elem.data('sendname')});
+				object[dataobj.name] = this.elem.value;
+				this.ajaxcall.data = $.extend({ }, this.ajaxcall.data, object);
+				this._execute();
+			}
 		}
 	}, 'AjaxElement');
 	
