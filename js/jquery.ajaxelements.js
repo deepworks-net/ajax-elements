@@ -34,6 +34,8 @@
 				return { "e": this.$elem.data('event') };
 			},
 			initFn: function() {
+				this.config.elem = this.elem;
+				this.config.$elem = this.$elem;
 				if(this.config.e) {
 					var data = this;
 					this.$elem.on(this.config.e, function(e){
@@ -47,14 +49,22 @@
 	
 	$.plugin('TriggerElement', {
 		defaults: {
-			
+			triggerFunc: function() {
+				alert('Hello!');
+			}
 		},
 		framework: {
 			_execute: function(options) {
-				alert('Hello!')
+				this.triggerFunc();
 			}
 		}
 	}, 'ElementX');
+	
+	$.plugin('TriggerButton', {
+		defaults: {
+			e: 'click'
+		}
+	}, 'TriggerElement');
 	
 	$.plugin('AjaxElement', {
 		defaults: {
@@ -141,12 +151,6 @@
 				return metadata;
 			},
 			initFn: function() {
-				if(this.config.e) {
-					var data = this;
-					this.$elem.on(this.config.e, function(e){
-						data.config._onEvent(e);
-					});
-				};
 				if (this.config.rid) {
 					this.config.$rid = $((this.config.rid.slice(0,1) === '#') ? this.config.rid : '#' + this.config.rid);
 				};
@@ -157,7 +161,6 @@
 	
 	$.plugin('AjaxButton', {
 		defaults: {
-			//useNew: false,
 			//reDirUrl: undefined,
 			e: 'click'
 		}
@@ -172,12 +175,38 @@
 	$.plugin('AjaxForm', {
 		defaults: {
 			e: 'submit',
+			useNew: false,
 			submit: true,
-			formOptions: {
-				validate: false,
-				e: 'submit', //????
-				formID: undefined,
-				catchEnter: true
+			validate: false,
+			catchEnter: true,
+			preventDefault: true,
+			frmdataFunc: function() {
+				var qs;
+				if (this.useNew) {
+					var frmData = this.$elem.serializeObject();
+					qs = $.extend({}, this.ajaxcall.data, frmData);
+				} else {
+					qs = this.$elem.serialize();
+				}
+				this.ajaxcall.data = qs;
+			},
+			validateFunc: function() {
+				return true;
+			}
+		},
+		framework: {
+			_run: function() {
+				//make something that goes through all conditional run functions?
+				this.frmdataFunc();
+				if(this._validate()) {
+					this._execute();
+				}
+			},
+			_validate: function() {
+				if (this.submit) {
+					return this.validateFunc();
+				}
+				return true;
 			}
 		},
 		builder: {
@@ -185,9 +214,12 @@
 				var metadata = {};
 				metadata.formOptions = $.extend(true, { }, this.$elem.data('formoptions'), {
 					validate: this.$elem.data('validate'),
-					e: this.$elem.data('event-type'),
-					formID: this.$elem.data('formid')
+					catchEnter: this.$elem.data('catch-enter')
 				});
+				metadata.ajaxcall = {
+					type: this.$elem.attr('method'),
+					url: this.$elem.attr('action')
+				}
 				return metadata;
 			}
 		}
