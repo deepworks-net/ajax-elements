@@ -31,7 +31,7 @@
 		},
 		builder: {
 			metadataFn: function() {
-				return { "e": this.$elem.data('event') };
+				return { "e": this.$elem.attr('data-event') };
 			},
 			initFn: function() {
 				this.config.elem = this.elem;
@@ -49,14 +49,30 @@
 	
 	$.plugin('TriggerElement', {
 		defaults: {
-			//????
+			autoTrigger: true,
 			target: undefined,
+			triggerEvent: undefined,
 			triggerFunc: function() {}
 		},
 		framework: {
 			_execute: function(options) {
+				this._trigger(options);
+			},
+			_trigger: function(options) {
+				if (this.autoTrigger && this.target && this.triggerEvent) {
+					$(this.target).trigger(this.triggerEvent);
+				}
 				this.triggerFunc();
 			}
+		},
+		builder: {
+			metadataFn: function() {
+				return {
+					"autoTrigger": this.$elem.attr('data-auto-trigger'),
+					"target": this.$elem.attr('data-target'),
+					"triggerEvent": this.$elem.attr('data-trigger-event')
+				};
+			},
 		}
 	}, 'ElementX');
 	
@@ -110,6 +126,7 @@
 			},
 			_execute: function(ajaxOR) {
 				var api = this;
+				this.blockFunc();
 				this.preStartFunc();
 				this._ajaxFunc(ajaxOR).done(function(result,status,success){
 					api.beginFunc(result,success);
@@ -129,25 +146,24 @@
 						$.event.trigger('ajaxStop.AE');
 					}
 					api.alwaysFunc();
+					api.unblockFunc();
 				});
 			}
 		},
 		builder: {
 			metadataFn: function() {
 				var elem = this.$elem;
-				var toteURL = elem.data('url');
-				var metadata = $.extend({ }, elem.data('ajaxelement'), {
-					rid: elem.data('rid'),
-					triggerEvents: elem.data('trigger-events'),
-					useReplace: elem.data('replace'),
-					blockID: elem.data('blockID'),
-					submitButton: elem.data('submit')
-					//useNew: this.$elem.data('usenew'),
+				var toteURL = elem.attr('data-url');
+				var metadata = $.extend({ }, elem.attr('data-ajaxelement'), {
+					rid: elem.attr('data-rid'),
+					triggerEvents: elem.attr('data-trigger-events'),
+					useReplace: elem.attr('data-replace'),
+					blockID: elem.attr('data-blockID')
 				});
-				metadata.ajaxcall = $.extend({ }, elem.data('ajaxcall'), { 
+				metadata.ajaxcall = $.extend({ }, elem.attr('data-ajaxcall'), { 
 					url: toteURL
 				});
-				metadata.ajaxcall.data = $.extend({ }, elem.data('ajaxdata'), $.parseParams(toteURL));
+				metadata.ajaxcall.data = $.extend({ }, elem.attr('data-ajaxdata'), $.parseParams(toteURL));
 				return metadata;
 			},
 			initFn: function() {
@@ -173,7 +189,7 @@
 		framework: {
 			_run: function() {
 				var object = {};
-				var dataobj = $.extend({}, { name: this.$elem.attr('name')}, { name: this.$elem.data('sendname')});
+				var dataobj = $.extend({}, { name: this.$elem.attr('name')}, { name: this.$elem.attr('data-sendname')});
 				object[dataobj.name] = this.elem.value;
 				this.ajaxcall.data = $.extend({ }, this.ajaxcall.data, object);
 				this._execute();
@@ -220,16 +236,14 @@
 		},
 		builder: {
 			metadataFn: function() {
-				var metadata = {};
-				metadata.formOptions = $.extend(true, { }, this.$elem.data('formoptions'), {
-					validate: this.$elem.data('validate'),
-					catchEnter: this.$elem.data('catch-enter')
-				});
-				metadata.ajaxcall = {
-					type: this.$elem.attr('method'),
-					url: this.$elem.attr('action')
-				}
-				return metadata;
+				return {
+					validate: this.$elem.attr('data-validate'),
+					catchEnter: this.$elem.attr('data-catch-enter'),
+					ajaxcall: {
+						type: this.$elem.attr('method'),
+						url: this.$elem.attr('action')
+					}
+				};
 			}
 		}
 	}, 'AjaxElement');
@@ -250,167 +264,5 @@
 			}
 		}
 	}, 'AjaxElement');
-	
-})( jQuery );
-;(function ( $ ) {
-	'use strict'
-	/*
-	AjaxElement.prototype = {
-		name: "AjaxElement",
-		defaults: {
-			ajaxcall: undefined,
-			rid: undefined,
-			useReplace: false,
-			e: undefined,
-			triggerEvents: true,
-			preventDefault: false,
-			blockID: undefined,
-			successFunc: function(success) {},
-			errorFunc: function(error) {
-				alert('There was an Error processing your request, please try again later.');
-			},
-			unAuthFunc: function(error) {
-				alert('There was an Error processing your request, please try again later. UNAUTHORIZED');
-			},
-			blockFunc: function() {},
-			unblockFunc: function() {},
-			beginFunc: function(result,elm,$rid,success) {},
-			endFunc: function(result,elm,$rid,success) {},
-			preStartFunc: function() {},
-			alwaysFunc: function() {}
-		},
-		framework: {
-			buildEvent: function () {
-				if (this.triggerEvents) {
-					$.event.trigger('ajaxStart.AE');
-				}
-			},
-			replaceFunc: function(result,elm,$rid,success) {
-				if ($rid) {
-					if (elm.useReplace){
-						$rid.empty();
-						$rid.append($.trim(result));
-					} else {
-						$rid.html($.trim(result));
-					}
-				}
-			},
-			ajaxFunc: function(options) {
-				this.buildEvent();
-				return $.ajax($.extend({},this.ajaxcall,options));
-			},
-			execute: function(ajaxOR) {
-				var api = this;
-				this.preStartFunc();
-				this.ajaxFunc(ajaxOR).done(function(result,status,obj){
-					var $rid
-					if (api.rid) {
-						var rrid = (api.rid.slice(0,1) === '#') ? api.rid : '#' + api.rid;
-						$rid = $(rrid);
-					}
-					api.beginFunc(result,api,$rid,obj);
-					if (api.rid) {
-						api.replaceFunc(result,api,$rid,obj);
-					}
-					api.endFunc(result,api,$rid,obj);
-					api.successFunc(obj);
-				}).fail(function(error){
-					if (error.status === 401) {
-						api.unAuthFunc(error);
-					} else {
-						api.errorFunc(error);
-					}
-				}).always(function(){
-					if (api.triggerEvents) {
-						$.event.trigger('ajaxStop.AE');
-					}
-					api.alwaysFunc();
-				});
-			},
-			run: function() {
-				this.execute();
-			},
-			onEvent: function(e) {
-				if (this.preventDefault) {
-					e.preventDefault();
-				}
-				this.run();
-			}
-		},
-		methods: {
-			init: function(options) {
-				
-			},
-			data: function() {
-				return $(this).data(DataName);
-			},
-			api: function() {
-				return $(this).data(DataName).config;
-			}
-		},
-		getMetadata: function(elem) {
-			
-		},
-		init: function() {
-			this.config = $.extend(true, { }, this.defaults, this.options, this.metadata, this.framework);
-			if(this.config.e) {
-				var data = this;
-				this.$elem.on(this.config.e, function(e){
-					data.config.onEvent(e);
-				});
-			}
-			return this;
-		}
-	};
-	
-	//Add method method!
-	
-	AjaxElement.defaults = AjaxElement.prototype.defaults;
-	AjaxElement.methods = AjaxElement.prototype.methods;
-	
-	$.fn.AjaxElement = function (options) {
-		if (AjaxElement.methods[options]) {
-			return AjaxElement.methods[options].apply(this, Array.prototype.slice.call(arguments, 1));
-		} else if ( typeof options === 'object' || !options ) {
-			return AjaxElement.methods.init.apply(this, arguments);
-		} else {
-			console.log('Error!');
-		}
-	};
-	
-	var buildElement = function (options) {
-		
-		//return $(this).AjaxElement($.extend({},defs,options));
-	};
-	
-	$.AjaxElement = {
-		elementTypes: {},
-		setDefaults: function(newDefs,elmType) {
-			if(elmType) {
-				if(this.elementTypes[elmType]) {
-					this.elementTypes[elmType] = $.extend({}, this.elementTypes[elmType], newDefs);
-				}
-			}
-		},
-		extend: function(obj,elem,options) {
-			return $.extend(AjaxElement.prototype.defaults, options);
-		},
-		addElement: function(options) {
-			var name = options.name;
-			var defs = options.defaults;
-			this.elementTypes[name] = defs;
-			$.fn[name] = function(options) {
-				return $(this).AjaxElement($.extend({},defs,options));
-			};
-		}
-	};
-	
-	$.AjaxElement.elementTypes["AjaxElement"] = AjaxElement.defaults;
-	
-	$.CreateAjaxElement = function(selector, options) {
-		$(selector).AjaxElement(options);
-	};
-	
-	*/
 	
 })( jQuery );
