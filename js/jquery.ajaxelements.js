@@ -2,7 +2,7 @@
 
 	Will Document This At Some Point
 	
-	This lib depends on the validationEngine and JQuery
+	This lib depends on JQuery and JQuery plugin factory.
 	
 */
 ;(function ( $ ) {
