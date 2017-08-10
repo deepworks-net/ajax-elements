@@ -123,17 +123,17 @@
 <table>
 	<tbody>
 		<tr>
-			<td>In Order (With New Defaults)</td>
+			<td>In Order (With New Defaults) (With New Initialization)</td>
 		</tr>
 		<tr>
 			<td>
-				<button type="button" id="test12">
+				<button type="button" id="test12" data-plugin="plugOne">
 					Test 12 - Inheritance Problem (View Console)
 				</button>
-				<button type="button" id="test13">
+				<button type="button" id="test13" data-plugin="plugTwo">
 					Test 13 - Inheritance Problem (View Console)
 				</button>
-				<button type="button" id="test14">
+				<button type="button" id="test14" data-plugin="plugThree">
 					Test 14 - Inheritance Problem (View Console)
 				</button>
 			</td>
@@ -145,17 +145,17 @@
 <table>
 	<tbody>
 		<tr>
-			<td>Out Of Order (With New Defaults)</td>
+			<td>Out Of Order (With New Defaults) (With New Initialization)</td>
 		</tr>
 		<tr>
 			<td>
-				<button type="button" id="test15">
+				<button type="button" id="test15" data-plugin="plugSix">
 					Test 15 - Inheritance Problem (View Console)
 				</button>
-				<button type="button" id="test16">
+				<button type="button" id="test16" data-plugin="plugFour">
 					Test 16 - Inheritance Problem (View Console)
 				</button>
-				<button type="button" id="test17">
+				<button type="button" id="test17" data-plugin="plugFive">
 					Test 17 - Inheritance Problem (View Console)
 				</button>
 			</td>
@@ -279,6 +279,17 @@
 		}
 	}, 'plugFour');
 	
+	$.plugin('plugSix', {
+		defaults: {
+			val: 'six'
+		},
+		methods: {
+			newMeth: function() {
+				console.log('IM ALREADY HERE!');
+			}
+		}
+	}, 'plugFive');
+	
 	$('#test6').plugOne();
 	$('#test7').plugTwo();
 	$('#test8').plugThree();
@@ -299,17 +310,43 @@
 		val: '4-seven'
 	});
 	
-	$.plugFive.setDefaults({
+	$.plugin.setDefaults('plugFive', {
 		val: '5-eight'
 	});
 	
-	$('#test12').plugOne();
-	$('#test13').plugTwo();
-	$('#test14').plugThree();
+	$.plugOne.init();
+	$.plugTwo.init();
+	$.plugThree.init();
 	
-	$('#test15').plugOne();
-	$('#test16').plugFour();
-	$('#test17').plugFive();
+	$.plugin.init(['plugSix', 'plugFour', 'plugFive']);
 	
+	$('#recDiv9').plugFive('api'); 
+	
+	$.plugFive.addMethod('newMeth', function(){
+		console.log('IVE BEEN ADDED!');
+	});
+	
+	$.plugTwo.addMethod('Jump');
+	$.plugTwo.addMethod('Jump2', function(word) {
+		console.log('The word is: '+word);
+	});
+	
+	$('#test17').plugFive('newMeth');
+	$('#test15').plugSix('newMeth');
+	
+	$('#test7').plugTwo('Jump');
+	$('#test7').plugTwo('Jump2', 'Boomshakalaka!');
+	
+	console.log('Plugin plugSix ' + (($.plugin.exists('plugSix')) ? 'exists!' : 'does not exist!'));
+	console.log('Plugin plugSix2 ' + (($.plugin.exists('plugSix2')) ? 'exists!' : 'does not exist!'));
+	
+	$.plugin.addMethod('newMeth');
+	$.plugin.addMethod('plugOne', 'Boom');
+	$.plugin.addMethod('plugTwo', 'GetIt', function() {
+		return this.config.val + ' is the value!';
+	});
+	
+	console.log($('#test7').plugTwo('GetIt'));
+	console.log($('#test13').plugTwo('GetIt'));
 	
 </script>
