@@ -47,6 +47,10 @@
 		}
 	});
 	
+	/**
+		Make so can trigger numerous elements, with different events?
+		If no target, have a default class for the target?
+	*/
 	$.plugin('TriggerElement', {
 		defaults: {
 			autoTrigger: true,
@@ -87,6 +91,8 @@
 			ajaxcall: undefined,
 			rid: undefined,
 			useReplace: false,
+			eventStart: 'ajaxStart.AE',
+			eventStop: 'ajaxStop.AE',
 			triggerEvents: true,
 			preventDefault: false,
 			blockID: undefined,
@@ -107,7 +113,7 @@
 		framework: {
 			_buildEvent: function () {
 				if (this.triggerEvents) {
-					$.event.trigger('ajaxStart.AE');
+					$.event.trigger(this.eventStart);
 				}
 			},
 			_replaceFunc: function(result,success) {
@@ -143,7 +149,7 @@
 					}
 				}).always(function(){
 					if (api.triggerEvents) {
-						$.event.trigger('ajaxStop.AE');
+						$.event.trigger(this.eventStart);
 					}
 					api.alwaysFunc();
 					api.unblockFunc();
@@ -156,6 +162,9 @@
 				var toteURL = elem.attr('data-url');
 				var metadata = $.extend({ }, elem.attr('data-ajaxelement'), {
 					rid: elem.attr('data-rid'),
+					eventStart: elem.attr('data-event-start'),
+					eventStop: elem.attr('data-event-stop'),
+					eventSpace: elem.attr('data-event-space'),
 					triggerEvents: elem.attr('data-trigger-events'),
 					useReplace: elem.attr('data-replace'),
 					blockID: elem.attr('data-blockID')
@@ -177,7 +186,6 @@
 	
 	$.plugin('AjaxButton', {
 		defaults: {
-			//reDirUrl: undefined,
 			e: 'click'
 		}
 	}, 'AjaxElement');
