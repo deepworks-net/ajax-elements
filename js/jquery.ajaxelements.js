@@ -149,7 +149,7 @@
 					}
 				}).always(function(){
 					if (api.triggerEvents) {
-						$.event.trigger(this.eventStart);
+						$.event.trigger(api.eventStart);
 					}
 					api.alwaysFunc();
 					api.unblockFunc();
