@@ -14,8 +14,8 @@
 		},
 		framework: {
 			_execute: function(options) { },
-			_run: function() {
-				this._execute();
+			_run: function(options) {
+				this._execute(options);
 			},
 			_onEvent: function(e) {
 				if (this.preventDefault) {
@@ -26,7 +26,7 @@
 		},
 		methods: {
 			fire: function(options) {
-				this.config._execute(options);
+				this.config._run.apply(this.config, arguments);
 			}
 		},
 		builder: {
@@ -118,7 +118,10 @@
 						this.$rid.html($.trim(result));
 					}
 				}
-			}
+			},
+			doneCallbacks: [],
+			alwaysCallbacks: [],
+			failCallbacks: []
 		},
 		framework: {
 			_buildEvent: function () {
@@ -130,28 +133,28 @@
 				this._buildEvent();
 				return $.ajax($.extend({},this.ajaxcall,options));
 			},
-			_execute: function(ajaxOR) {
+			_execute: function(ajaxcall,done,fail,always) {
 				var api = this;
 				this.blockFunc();
 				this.preStartFunc();
-				this._ajaxFunc(ajaxOR).done(function(result,status,success){
+				this._ajaxFunc(ajaxcall).done(function(result,status,success){
 					api.beginFunc(result,success);
 					api.replaceFunc(result,success);
 					api.endFunc(result,success);
 					api.successFunc(success);
-				}).fail(function(error){
+				}, this.doneCallbacks, done).fail(function(error){
 					if (error.status === 401) {
 						api.unAuthFunc(error);
 					} else {
 						api.errorFunc(error);
 					}
-				}).always(function(){
+				}, this.failCallbacks, fail).always(function(){
 					if (api.triggerEvents) {
 						$.event.trigger(api.eventStart);
 					}
 					api.alwaysFunc();
 					api.unblockFunc();
-				});
+				}, this.alwaysCallbacks, always);
 			}
 		},
 		builder: {
@@ -193,12 +196,12 @@
 			e: 'change'
 		},
 		framework: {
-			_run: function() {
+			_run: function(options,done,fail,always) {
 				var object = {};
 				var dataobj = $.extend({}, { name: this.$elem.attr('name')}, { name: this.$elem.attr('data-sendname')});
 				object[dataobj.name] = this.elem.value;
 				this.ajaxcall.data = $.extend({ }, this.ajaxcall.data, object);
-				this._execute();
+				this._execute(options,done,fail,always);
 			}
 		}
 	}, 'AjaxElement');
@@ -226,11 +229,11 @@
 			}
 		},
 		framework: {
-			_run: function() {
+			_run: function(options,done,fail,always) {
 				//make something that goes through all conditional run functions?
 				this.frmdataFunc();
 				if(this._validate()) {
-					this._execute();
+					this._execute(options,done,fail,always);
 				}
 			},
 			_validate: function() {
@@ -261,9 +264,9 @@
 			loaded: 0
 		},
 		framework: {
-			_run: function() {
+			_run: function(options,done,fail,always) {
 				if (this.loaded === 0) {
-					this._execute();
+					this._execute(options,done,fail,always);
 					if (this.loadOnce) { this.loaded = 1; }
 				}
 				
