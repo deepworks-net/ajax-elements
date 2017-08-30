@@ -108,15 +108,8 @@
 			beginFunc: function(result,success) {},
 			endFunc: function(result,success) {},
 			preStartFunc: function() {},
-			alwaysFunc: function() {}
-		},
-		framework: {
-			_buildEvent: function () {
-				if (this.triggerEvents) {
-					$.event.trigger(this.eventStart);
-				}
-			},
-			_replaceFunc: function(result,success) {
+			alwaysFunc: function() {},
+			replaceFunc: function(result,success) {
 				if (this.$rid) {
 					if (this.useReplace){
 						this.$rid.empty();
@@ -124,6 +117,13 @@
 					} else {
 						this.$rid.html($.trim(result));
 					}
+				}
+			}
+		},
+		framework: {
+			_buildEvent: function () {
+				if (this.triggerEvents) {
+					$.event.trigger(this.eventStart);
 				}
 			},
 			_ajaxFunc: function(options) {
@@ -136,9 +136,7 @@
 				this.preStartFunc();
 				this._ajaxFunc(ajaxOR).done(function(result,status,success){
 					api.beginFunc(result,success);
-					if (api.rid) {
-						api._replaceFunc(result,success);
-					}
+					api.replaceFunc(result,success);
 					api.endFunc(result,success);
 					api.successFunc(success);
 				}).fail(function(error){
