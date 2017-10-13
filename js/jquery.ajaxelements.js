@@ -54,25 +54,32 @@
 	$.plugin('TriggerElement', {
 		defaults: {
 			autoTrigger: true,
+			triggerOnce: false,
 			target: undefined,
 			triggerEvent: undefined,
 			triggerFunc: function() {}
 		},
 		framework: {
+			_triggered: false,
 			_execute: function(options) {
-				this._trigger(options);
+				if (!this._triggered || !this.triggerOnce) {
+					this._trigger(options);
+					this._triggered = true;
+				}
 			},
 			_trigger: function(options) {
 				if (this.autoTrigger && this.target && this.triggerEvent) {
 					$(this.target).trigger(this.triggerEvent);
 				}
+				/* Should this be moved up? */
 				this.triggerFunc();
 			}
 		},
 		builder: {
 			metadataFn: function() {
 				return {
-					"autoTrigger": this.$elem.attr('data-auto-trigger'),
+					"autoTrigger": $.toBoolUn(this.$elem.attr('data-auto-trigger')),
+					"triggerOnce": $.toBoolUn(this.$elem.attr('data-trigger-once')),
 					"target": this.$elem.attr('data-target'),
 					"triggerEvent": this.$elem.attr('data-trigger-event')
 				};
@@ -166,8 +173,8 @@
 					eventStart: elem.attr('data-event-start'),
 					eventStop: elem.attr('data-event-stop'),
 					eventSpace: elem.attr('data-event-space'),
-					triggerEvents: elem.attr('data-trigger-events'),
-					useReplace: elem.attr('data-replace'),
+					triggerEvents: $.toBoolUn(elem.attr('data-trigger-events')),
+					useReplace: $.toBoolUn(elem.attr('data-replace')),
 					blockID: elem.attr('data-blockID')
 				});
 				metadata.ajaxcall = $.extend({ }, elem.attr('data-ajaxcall'), { 
@@ -210,7 +217,6 @@
 		defaults: {
 			e: 'submit',
 			useNew: false,
-			submit: true,
 			validate: false,
 			catchEnter: true,
 			preventDefault: true,
@@ -237,7 +243,7 @@
 				}
 			},
 			_validate: function() {
-				if (this.submit) {
+				if (this.validate) {
 					return this.validateFunc();
 				}
 				return true;
@@ -246,8 +252,8 @@
 		builder: {
 			metadataFn: function() {
 				return {
-					validate: this.$elem.attr('data-validate'),
-					catchEnter: this.$elem.attr('data-catch-enter'),
+					validate: $.toBoolUn(this.$elem.attr('data-validate')),
+					catchEnter: $.toBoolUn(this.$elem.attr('data-catch-enter')),
 					ajaxcall: {
 						type: this.$elem.attr('method'),
 						url: this.$elem.attr('action')
@@ -270,6 +276,13 @@
 					if (this.loadOnce) { this.loaded = 1; }
 				}
 				
+			}
+		},
+		builder: {
+			metadataFn: function() {
+				return {
+					loadOnce: $.toBoolUn(this.$elem.attr('data-load-once'))
+				};
 			}
 		}
 	}, 'AjaxElement');
