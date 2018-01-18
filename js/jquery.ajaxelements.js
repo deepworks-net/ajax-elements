@@ -10,7 +10,8 @@
 	
 	$.plugin('ElementX', {
 		defaults: {
-			e: undefined
+			e: undefined,
+			preventDefault: false
 		},
 		framework: {
 			_execute: function(options) { },
@@ -31,7 +32,10 @@
 		},
 		builder: {
 			metadataFn: function() {
-				return { "e": this.$elem.attr('data-event') };
+				return { 
+					"e": this.$elem.attr('data-event'),
+					"preventDefault": $.toBoolUn(this.$elem.attr('data-prevent-default'))
+				};
 			},
 			initFn: function() {
 				this.config.elem = this.elem;
@@ -157,7 +161,7 @@
 					}
 				}, this.failCallbacks, fail).always(function(){
 					if (api.triggerEvents) {
-						$.event.trigger(api.eventStart);
+						$.event.trigger(api.eventStop);
 					}
 					api.alwaysFunc();
 					api.unblockFunc();
@@ -286,5 +290,110 @@
 			}
 		}
 	}, 'AjaxElement');
+	
+	$.plugin('AjaxAdvancedForm', {
+		defaults: {
+			inputData: {
+				select: {
+					"set": function(obj) {
+						$(this).val(obj)
+					},
+					"init": function() {}
+				},
+				text: {
+					"set": function(obj) {
+						$(this).val(obj);
+					},
+					"init": function() {}
+				}
+			}
+		},
+		framework: {
+			_load: function(obj) {
+				var o2 = (obj.data) ? obj.data : obj;
+				$.each(this._model, function(i, obj){
+					var s = i.split('.'), m = o2[s[0]];
+					for (var a = 1; a < s.length; a++) { m = m[s[a]]; }
+					if (m !== undefined) { obj.set.apply(obj.dom, [m]); }
+				});
+			},
+			_reset: function() {
+				var r_o = {}, model = this._model;
+				var convObj = function(obj, key, val) {
+					var keys = key.split('.');
+					var thisKey = keys[0];
+					obj[thisKey] = val;
+					if (keys.length !== 1) { obj[thisKey] = convObj({},key.substr( key.indexOf('.') + 1 ), val); }
+					return obj;
+				}
+				$.each(this._map, function(i, obj) {
+					var s = obj.split('.')[0];
+					var r = convObj({},obj,model[obj].value);
+					r_o[s] = r[s];
+				});
+				this._load(r_o);
+			},
+			_reScan: function() {
+				this._obj = this.$elem.serializeObject();
+				var $inputs = this.$elem.find('[data-input-map]');
+				var config = this;
+				var inputs = {}, map = {};
+				$.each($inputs, function(i, obj) {
+					var $o = $(obj);
+					var mName = $o.attr('data-input-map');
+					var type = $o.attr('data-input-type');
+					var name = $o.attr('name');
+					var setFunc = (type === 'select') ? config.inputData.select.set : config.inputData.text.set;
+					if (config.inputData[mName]) {
+						if (config.inputData[mName].set) {
+							setFunc = config.inputData[mName].set;
+						}
+					}
+					/*Does Not Support Multiples Yet*/
+					map[name] = mName;
+					inputs[mName] = {
+						"map_id": mName,
+						"type": type,
+						"dom": obj,
+						"name": name,
+						"value": (type === 'select') ? $o.find('option:selected').val() : $o.val(),
+						"set": setFunc
+					}
+				});
+				this._model = inputs;
+				this._map = map;
+			},
+			_map: {},
+			_obj: {},
+			_model: {}
+		},
+		methods: {
+			"load": function(obj) {
+				this.config._load.apply(this.config, arguments);
+				return this.$elem;
+			},
+			"reset": function() {
+				this.config._reset.apply(this.config, arguments);
+				return this.$elem;
+			},
+			"scan": function() {
+				this.config._reScan.apply(this.config, arguments);
+				return this.$elem;
+			}
+		},
+		/*expand to just use name if it does not need mapping...*/
+		builder: {
+			initFn: function() {
+				this.config.$elem = this.$elem;
+				this.config._reScan.apply(this.config);
+				return this;
+			},
+			metadataFn: function() {
+				return {
+					load_url: this.$elem.attr('data-url')
+				}
+			}
+		}
+	}, 'AjaxForm');
 	
 })( jQuery );
