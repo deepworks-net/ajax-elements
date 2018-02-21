@@ -396,4 +396,178 @@
 		}
 	}, 'AjaxForm');
 	
+	/*Row Prefix - add ID automatically to the row?*/
+	$.plugin('TemplateTable', {
+		defaults: {
+			data: null,
+			dTemplate: null,
+			eTemplate: null,
+			aTemplate: null,
+			container: 'body',
+			handles: {
+				addHandle: '.add-button',
+				editHandle: 'tr .edit-button',
+				cancelHandle: '.cancel-button',
+				cAddRowHandle: 'tr.add .cancel-button',
+				cEditRowHandle: 'tr.edit .cancel-button'
+			},
+			removeRowFunc: function() {},
+			templateFunc: function(obj, template) { return ""; },
+			addAddRowCallback: function() {},
+			addEditRowCallback: function(row, data) {},
+			addDefRowCallback: function(row, data) {},
+			drawCallback: function() {},
+			getNewObject: function() { return {}; },
+			getRowId: function(row) { return $(row).attr('id'); },
+			findCompareFunc: function(data, id) { return data === id; },
+			sortCompareFunc: null
+		},
+		framework: {
+			_rows: null,
+			_newCount: 1,
+			_clearTable: function() {
+				this.table.find('tbody').empty();
+			},
+			_drawTable: function(data) {
+				var that = this;
+				this._clearTable();
+				$.each(this._rows, function(i,v) {
+					that.table.append(that.templateFunc(v,that.dTemplate));
+				});
+				this.drawCallback();
+			},
+			_setData: function(data, draw) {
+				this._rows = data;
+				if (draw !== false) { this._drawTable(); }
+			},
+			_find: function(id) {
+				var that = this;
+				return this._rows.find(function(data) {
+					return that.findCompareFunc(data, id);
+				});
+			},
+			_findIndex: function(id) {
+				var that = this;
+				return this._rows.findIndex(function(data) {
+					return that.findCompareFunc(data, id);
+				});
+			},
+			_append: function(obj, template) {
+				this.table.append(this.templateFunc(obj, template));
+			},
+			_resetTable: function() {
+				this._clearTable();
+				this._drawTable();
+			},
+			_getRows: function() {
+				return this._rows;
+			},
+			_sort: function() {
+				this._rows.sort(this.sortCompareFunc);
+			},
+			_handleReplaceData: function(data) {
+				var i = this._findIndex(data.sku);
+				if (i !== -1) { 
+					this._rows[i] = data;
+				} else {
+					this._rows.push(data);
+				}
+				this._sort();
+			},
+			_updateData: function(data, draw) {
+				var that = this;
+				$.each(data, function(i, ch){
+					that._handleReplaceData(ch);
+				});
+				if (draw !== false) { this._drawTable(); }
+			}
+		},
+		methods: {
+			load: function(){
+				this.config._drawTable.apply(this.config, arguments);
+				return this.$elem;
+			},
+			data: function(data, draw) {
+				this.config._setData.apply(this.config, arguments);
+				return this.$elem;
+			},
+			reset: function() {
+				this.config._resetTable.apply(this.config, arguments);
+				return this.$elem;
+			},
+			rows: function() {
+				return this.config._getRows.apply(this.config, arguments);
+			},
+			update: function(data, draw) {
+				this.config._updateData.apply(this.config, arguments);
+				return this.$elem;
+			},
+			find: function(id) {
+				return this.config._find.apply(this.config, arguments);
+			}
+		},
+		builder: {
+			metadataFn: function() {
+				return { 
+					"container": this.$elem.attr('data-container'),
+					"handles": {
+						"addHandle": this.$elem.attr('data-add-handle'),
+						"editHandle": this.$elem.attr('data-edit-handle'),
+						"cancelHandle": this.$elem.attr('data-cancel-handle'),
+						"cAddRowHandle": this.$elem.attr('data-add-row-handle'),
+						"cEditRowHandle": this.$elem.attr('data-edit-row-handle')
+					}
+				};
+			},
+			initFn: function() {
+				var config = this.config, that = this;
+				config.table = this.$elem;
+				config._rows = this.config.data || [];
+				var cc = $(config.container);
+				cc.off('.tt');
+				if (config.handles.addHandle) {
+					cc.on('click.tt', config.handles.addHandle, function(e) {
+						e.preventDefault();
+						config._append(config.getNewObject(), config.aTemplate);
+						config.addAddRowCallback();
+						config.drawCallback();
+						config._newCount++;
+					});
+				};
+				if (config.handles.cAddRowHandle) {
+					cc.on('click.tt', config.handles.cAddRowHandle, function(e){
+						e.preventDefault();
+						$(this).closest('tr').remove();
+						config.drawCallback();
+					});
+				}
+				if (config.handles.cEditRowHandle) {
+					cc.on('click.tt', config.handles.cEditRowHandle, function(e){
+						e.preventDefault();
+						var tr = $(this).closest('tr');
+						/* Move this out, that way it can be called in any cancel method! Also, add addRow, removeRow, ect... */
+						var obj = config._find(config.getRowId(tr));
+						//CHECK FOR UNDEFINED?
+						var nTr = config.templateFunc(obj, config.dTemplate);
+						tr.replaceWith(nTr);
+						config.addDefRowCallback($(nTr), obj);
+						config.drawCallback();
+					});
+				}
+				if (config.handles.editHandle) {
+					cc.on('click.tt', config.handles.editHandle, function(e) {
+						e.preventDefault();
+						var tr = $(this).closest('tr');
+						var obj = config._find(config.getRowId(tr));
+						var nTr = config.templateFunc(obj, config.eTemplate);
+						tr.replaceWith(nTr);
+						config.addEditRowCallback($(nTr), obj);
+						config.drawCallback();
+					});
+				}
+				return this;
+			}
+		}
+	});
+	
 })( jQuery );
