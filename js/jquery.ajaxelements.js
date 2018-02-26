@@ -239,11 +239,18 @@
 			}
 		},
 		framework: {
+			_unsaved: false,
+			_isUnSaved: function(us) {
+				if (us !== undefined) { this._unsaved = us; } else { return this._unsaved; }
+			},
 			_run: function(options,done,fail,always) {
+				var that = this;
 				//make something that goes through all conditional run functions?
 				this.frmdataFunc();
 				if(this._validate()) {
-					this._execute(options,done,fail,always);
+					this._execute(options,[function(result,status,success){ 
+						that._unsaved = false; 
+					},done],fail,always);
 				}
 			},
 			_validate: function() {
@@ -251,6 +258,11 @@
 					return this.validateFunc();
 				}
 				return true;
+			}
+		},
+		methods: {
+			unSaved: function(us) {
+				return this.config._isUnSaved.apply(this.config, arguments);
 			}
 		},
 		builder: {
@@ -263,6 +275,16 @@
 						url: this.$elem.attr('action')
 					}
 				};
+			},
+			initFn: function() {
+				var that = this;
+				this.$elem.on('change.ae.af', ':input', function(e){
+					that.config._isUnSaved(true);
+				});
+				return this;
+			},
+			destFn: function() {
+				this.$elem.off('change.ae.af');
 			}
 		}
 	}, 'AjaxElement');
@@ -343,11 +365,11 @@
 					var mName = $o.attr('data-input-map');
 					var type = $o.attr('data-input-type');
 					var name = $o.attr('name');
+					/*Default to the type if no data-input-type?*/
+					/* Updated to work with custom options */
 					var setFunc = (type === 'select') ? config.inputData.select.set : config.inputData.text.set;
-					if (config.inputData[mName]) {
-						if (config.inputData[mName].set) {
-							setFunc = config.inputData[mName].set;
-						}
+					if (config.inputData[type] && config.inputData[type].set) {
+						setFunc = config.inputData[type].set;
 					}
 					/*Does Not Support Multiples Yet*/
 					map[name] = mName;
@@ -435,6 +457,7 @@
 					that.table.append(that.templateFunc(v,that.dTemplate));
 				});
 				this.drawCallback();
+				this.table.trigger('draw.tt', [this]);
 			},
 			_setData: function(data, draw) {
 				this._rows = data;
@@ -458,6 +481,7 @@
 			_resetTable: function() {
 				this._clearTable();
 				this._drawTable();
+				this.table.trigger('reset.tt', [this]);
 			},
 			_getRows: function() {
 				return this._rows;
@@ -510,6 +534,9 @@
 			metadataFn: function() {
 				return { 
 					"container": this.$elem.attr('data-container'),
+					"dTemplate": this.$elem.attr('data-default-template'),
+					"eTemplate": this.$elem.attr('data-edit-template'),
+					"aTemplate": this.$elem.attr('data-add-template'),
 					"handles": {
 						"addHandle": this.$elem.attr('data-add-handle'),
 						"editHandle": this.$elem.attr('data-edit-handle'),
