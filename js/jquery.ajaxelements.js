@@ -315,10 +315,11 @@
 	
 	$.plugin('AjaxAdvancedForm', {
 		defaults: {
+			data: null,
 			inputData: {
 				select: {
 					"set": function(obj) {
-						$(this).val(obj)
+						$(this).val(obj);
 					},
 					"init": function() {}
 				},
@@ -331,13 +332,15 @@
 			}
 		},
 		framework: {
-			_load: function(obj) {
+			_load: function(obj, rescan) {
 				var o2 = (obj.data) ? obj.data : obj;
 				$.each(this._model, function(i, obj){
 					var s = i.split('.'), m = o2[s[0]];
 					for (var a = 1; a < s.length; a++) { m = m[s[a]]; }
 					if (m !== undefined) { obj.set.apply(obj.dom, [m]); }
 				});
+				/*Rebuild the Model*/
+				if (rescan) { this._reScan(); };
 			},
 			_reset: function() {
 				var r_o = {}, model = this._model;
@@ -390,7 +393,7 @@
 			_model: {}
 		},
 		methods: {
-			"load": function(obj) {
+			"load": function(obj, rescan) {
 				this.config._load.apply(this.config, arguments);
 				return this.$elem;
 			},
@@ -408,6 +411,9 @@
 			initFn: function() {
 				this.config.$elem = this.$elem;
 				this.config._reScan.apply(this.config);
+				if (this.config.data) {
+					this.config._load.apply(this.config, [this.config, true]);
+				}
 				return this;
 			},
 			metadataFn: function() {
