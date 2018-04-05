@@ -142,7 +142,7 @@
 			},
 			_ajaxFunc: function(options) {
 				this._buildEvent();
-				return $.ajax($.extend({},this.ajaxcall,options));
+				return $.ajax($.extend(true,{},this.ajaxcall,options));
 			},
 			_execute: function(ajaxcall,done,fail,always) {
 				var api = this;
@@ -181,10 +181,10 @@
 					useReplace: $.toBoolUn(elem.attr('data-replace')),
 					blockID: elem.attr('data-blockID')
 				});
-				metadata.ajaxcall = $.extend({ }, elem.attr('data-ajaxcall'), { 
+				metadata.ajaxcall = $.extend({ }, elem.data('ajaxcall'), { 
 					url: toteURL
 				});
-				metadata.ajaxcall.data = $.extend({ }, elem.attr('data-ajaxdata'), $.parseParams(toteURL));
+				metadata.ajaxcall.data = $.extend({ }, elem.data('ajaxdata'), $.parseParams(toteURL));
 				return metadata;
 			},
 			initFn: function() {
@@ -316,18 +316,25 @@
 	$.plugin('AjaxAdvancedForm', {
 		defaults: {
 			data: null,
+			loadCallback: function() {},
 			inputData: {
 				select: {
 					"set": function(obj) {
 						$(this).val(obj);
 					},
-					"init": function() {}
+					"init": function() {},
+					"get": function() {
+						return $(this).val();
+					}
 				},
 				text: {
 					"set": function(obj) {
 						$(this).val(obj);
 					},
-					"init": function() {}
+					"init": function() {},
+					"get": function() {
+						return $(this).val();
+					}
 				}
 			}
 		},
@@ -341,6 +348,7 @@
 				});
 				/*Rebuild the Model*/
 				if (rescan) { this._reScan(); };
+				this.loadCallback();
 			},
 			_reset: function() {
 				var r_o = {}, model = this._model;
@@ -350,7 +358,7 @@
 					obj[thisKey] = val;
 					if (keys.length !== 1) { obj[thisKey] = convObj({},key.substr( key.indexOf('.') + 1 ), val); }
 					return obj;
-				}
+				};
 				$.each(this._map, function(i, obj) {
 					var s = obj.split('.')[0];
 					var r = convObj({},obj,model[obj].value);
@@ -376,12 +384,13 @@
 					}
 					/*Does Not Support Multiples Yet*/
 					map[name] = mName;
+					var val = (config.inputData[type] && config.inputData[type].get !== undefined) ? config.inputData[type].get.apply(obj) : $o.val();
 					inputs[mName] = {
 						"map_id": mName,
 						"type": type,
 						"dom": obj,
 						"name": name,
-						"value": (type === 'select') ? $o.find('option:selected').val() : $o.val(),
+						"value": val,
 						"set": setFunc
 					}
 				});
@@ -404,6 +413,10 @@
 			"scan": function() {
 				this.config._reScan.apply(this.config, arguments);
 				return this.$elem;
+			},
+			"get" :function() {
+				/*Update this to return the model that is just the values?*/
+				return this.config._model;
 			}
 		},
 		/*expand to just use name if it does not need mapping...*/
@@ -428,6 +441,7 @@
 	$.plugin('TemplateTable', {
 		defaults: {
 			data: null,
+			key: 'sku',
 			dTemplate: null,
 			eTemplate: null,
 			aTemplate: null,
@@ -460,7 +474,9 @@
 				var that = this;
 				this._clearTable();
 				$.each(this._rows, function(i,v) {
-					that.table.append(that.templateFunc(v,that.dTemplate));
+					var row = that.templateFunc(v,that.dTemplate);
+					that.table.append(row);
+					that.addDefRowCallback(row, v);
 				});
 				this.drawCallback();
 				this.table.trigger('draw.tt', [this]);
@@ -598,6 +614,7 @@
 						config.drawCallback();
 					});
 				}
+				config._drawTable();
 				return this;
 			}
 		}
