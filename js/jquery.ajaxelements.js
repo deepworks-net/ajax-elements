@@ -181,10 +181,10 @@
 					useReplace: $.toBoolUn(elem.attr('data-replace')),
 					blockID: elem.attr('data-blockID')
 				});
-				metadata.ajaxcall = $.extend({ }, elem.data('ajaxcall'), { 
+				metadata.ajaxcall = $.extend(true, {}, elem.data('ajaxcall'), { 
 					url: toteURL
 				});
-				metadata.ajaxcall.data = $.extend({ }, elem.data('ajaxdata'), $.parseParams(toteURL));
+				metadata.ajaxcall.data = $.extend(true, {}, elem.data('ajaxdata'), $.parseParams(toteURL));
 				return metadata;
 			},
 			initFn: function() {
@@ -335,6 +335,15 @@
 					"get": function() {
 						return $(this).val();
 					}
+				},
+				input: {
+					"set": function(obj) {
+						$(this).text(obj);
+					},
+					"init": function() {},
+					"get": function() {
+						return $(this).text();
+					}
 				}
 			}
 		},
@@ -375,6 +384,10 @@
 					var $o = $(obj);
 					var mName = $o.attr('data-input-map');
 					var type = $o.attr('data-input-type');
+					/* Adding default for non-inputs */
+					var asInput = ($.toBoolUn($o.attr('data-input')) === true) ? true : false;
+					// Temporary 'Fix'?
+					if (type === undefined && asInput) type = 'input'; 
 					var name = $o.attr('name');
 					/*Default to the type if no data-input-type?*/
 					/* Updated to work with custom options */
