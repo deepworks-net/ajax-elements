@@ -278,9 +278,12 @@
 			},
 			initFn: function() {
 				var that = this;
-				this.$elem.on('change.ae.af', ':input', function(e){
+				var changeFunc = function(e){
 					that.config._isUnSaved(true);
-				});
+				};
+				this.$elem.on('change.ae.af', ':input', changeFunc)
+					.on('input.ae.af', ':input', changeFunc)
+					.on('keyup.ae.af', ':input', changeFunc);
 				return this;
 			},
 			destFn: function() {
@@ -373,6 +376,7 @@
 					var r = convObj({},obj,model[obj].value);
 					r_o[s] = r[s];
 				});
+				this._unsaved = false;
 				this._load(r_o);
 			},
 			_reScan: function() {
