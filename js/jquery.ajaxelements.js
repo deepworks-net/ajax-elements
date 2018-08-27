@@ -515,7 +515,9 @@
 				});
 			},
 			_append: function(obj, template) {
-				this.table.append(this.templateFunc(obj, template));
+				var t = this.templateFunc(obj, template);
+				this.table.append(t);
+				return t;
 			},
 			_resetTable: function() {
 				this._clearTable();
@@ -594,8 +596,8 @@
 				if (config.handles.addHandle) {
 					cc.on('click.tt', config.handles.addHandle, function(e) {
 						e.preventDefault();
-						config._append(config.getNewObject(), config.aTemplate);
-						config.addAddRowCallback();
+						var tr = config._append(config.getNewObject(), config.aTemplate);
+						config.addAddRowCallback($(tr));
 						config.drawCallback();
 						config._newCount++;
 					});
