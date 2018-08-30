@@ -376,8 +376,8 @@
 					var r = convObj({},obj,model[obj].value);
 					r_o[s] = r[s];
 				});
-				this._unsaved = false;
 				this._load(r_o);
+				this._unsaved = false;
 			},
 			_reScan: function() {
 				this._obj = this.$elem.serializeObject();
