@@ -531,7 +531,7 @@
 				this._rows.sort(this.sortCompareFunc);
 			},
 			_handleReplaceData: function(data) {
-				var i = this._findIndex(data.sku);
+				var i = this._findIndex(data[this.key]);
 				if (i !== -1) { 
 					this._rows[i] = data;
 				} else {
