@@ -228,7 +228,7 @@
 				var qs;
 				if (this.useNew) {
 					var frmData = this.$elem.serializeObject();
-					qs = $.extend({}, this.ajaxcall.data, frmData);
+					qs = $.extend(true, {}, this.ajaxcall.data, frmData);
 				} else {
 					qs = this.$elem.serialize();
 				}
@@ -320,6 +320,10 @@
 		defaults: {
 			data: null,
 			loadCallback: function() {},
+			frmdataFunc: function() {
+				//Pull this out to ajax form once stable (for legacy code?)
+				this.ajaxcall.data = (this.useNew === true) ? this.$elem.serializeObject() : this.$elem.serialize();
+			},
 			inputData: {
 				select: {
 					"set": function(obj) {
