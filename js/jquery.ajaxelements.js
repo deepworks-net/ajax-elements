@@ -319,7 +319,7 @@
 	$.plugin('AjaxAdvancedForm', {
 		defaults: {
 			data: null,
-			loadCallback: function() {},
+			loadCallback: function(obj) {},
 			frmdataFunc: function() {
 				//Pull this out to ajax form once stable (for legacy code?)
 				this.ajaxcall.data = (this.useNew === true) ? this.$elem.serializeObject() : this.$elem.serialize();
@@ -364,7 +364,7 @@
 				});
 				/*Rebuild the Model*/
 				if (rescan) { this._reScan(); };
-				this.loadCallback();
+				this.loadCallback(o2);
 			},
 			_reset: function() {
 				var r_o = {}, model = this._model;
