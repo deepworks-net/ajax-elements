@@ -419,6 +419,7 @@
 				this._map = map;
 			},
 			_map: {},
+			//What Is This Used For?
 			_obj: {},
 			_model: {}
 		},
