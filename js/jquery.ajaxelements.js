@@ -137,7 +137,7 @@
 		framework: {
 			_buildEvent: function () {
 				if (this.triggerEvents) {
-					$.event.trigger(this.eventStart);
+					this.$elem.trigger(this.eventStart, [this]);
 				}
 			},
 			_ajaxFunc: function(options) {
@@ -161,7 +161,7 @@
 					}
 				}, this.failCallbacks, fail).always(function(){
 					if (api.triggerEvents) {
-						$.event.trigger(api.eventStop);
+						api.$elem.trigger(api.eventStop);
 					}
 					api.alwaysFunc();
 					api.unblockFunc();
